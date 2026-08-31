@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviation Travel Experience Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="container d-flex justify-content-center py-5">
+        <div class="card w-100" style="max-width:680px;">
+            <div class="card-header bg-primary text-white">
+                Aviation Travel Experience Assistant
+            </div>
+            <div class="card-body">
+
+                <div class="mb-3">
+                    <label for="endpoint" class="form-label">Mode</label>
+                    <select id="endpoint" class="form-select">
+                        <option value="/api/chat/ask">/api/chat/ask &mdash; raw travel query, no system prompt</option>
+                        <option value="/api/chat/ask-with-metadata">/api/chat/ask-with-metadata &mdash; guided travel advice + token cost</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="question" class="form-label">Ask your travel experience question</label>
+                    <input type="text" id="question" class="form-control"
+                        placeholder="e.g. What digital technologies can airlines use to reduce check-in wait times and improve passenger satisfaction?"
+                        required autofocus>
+                </div>
+
+                <div class="d-grid mb-3">
+                    <button onclick="askQuestion()" id="submitButton" class="btn btn-primary">Ask</button>
+                </div>
+
+                <div id="loading" class="mt-3 text-center visually-hidden">Processing your travel query...</div>
+                <div id="error" class="alert alert-danger mt-3 d-none"></div>
+                <div id="answer" class="mt-3 text-muted"
+                    style="max-height:480px; overflow-y:auto;">Travel guidance will appear here...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+    <script>
+        const questionInput = document.getElementById('question');
+        const endpointSelect = document.getElementById('endpoint');
+        const submitButton   = document.getElementById('submitButton');
+        const loadingDiv     = document.getElementById('loading');
+        const errorDiv       = document.getElementById('error');
+        const answerDiv      = document.getElementById('answer');
+
+        function showLoading() { loadingDiv.classList.remove('visually-hidden'); }
+        function hideLoading() { loadingDiv.classList.add('visually-hidden'); }
+
+        async function askQuestion() {
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            submitButton.disabled = true;
+            showLoading();
+            errorDiv.classList.add('d-none');
+            answerDiv.innerText = '';
+            answerDiv.classList.remove('text-muted');
+
+            try {
+                const url = endpointSelect.value + '?userPrompt=' + encodeURIComponent(question);
+                const response = await fetch(url, { method: 'GET' });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ` + await response.text());
+                }
+
+                const text = await response.text();
+                if (text) {
+                    const escaped = text
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;');
+                    answerDiv.innerHTML =
+                        `<div class="alert alert-light p-2" style="white-space:pre-wrap;">${escaped}</div>`;
+                } else {
+                    answerDiv.innerText = "No response received from the server.";
+                }
+            } catch (error) {
+                console.error(error);
+                errorDiv.innerText = "An error occurred: " + error.message;
+                errorDiv.classList.remove('d-none');
+            } finally {
+                submitButton.disabled = false;
+                hideLoading();
+            }
+        }
+    </script>
+</body>
+
+</html>
